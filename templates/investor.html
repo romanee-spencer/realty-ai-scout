@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Investor Deal Lab · Realty AI Scout</title>
+    <link rel="stylesheet" href="/static/investor.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <span class="eyebrow">REALTY AI SCOUT / INVESTOR WORKSPACE</span>
+          <h1>Does this deal hold up?</h1>
+        </div>
+        <a href="/research">AI property research →</a>
+      </header>
+      <p class="intro">
+        Compare a flip with a rental hold using your resale, rent, and cost
+        assumptions. Test weaker exit prices, repair overruns, delays, and
+        rental vacancy. Calculations work without an API key.
+      </p>
+      <form id="dealForm">
+        <h2>Property & evidence</h2>
+        <div class="fields">
+          <label
+            >Property address or deal name<input
+              type="text"
+              name="deal_name"
+              maxlength="300" /></label
+          ><label
+            >Resale evidence & date<input
+              type="text"
+              name="resale_evidence"
+              placeholder="Sold comparable links and sale dates"
+              maxlength="3000" /></label
+          ><label
+            >Rent evidence & date<input
+              type="text"
+              name="rent_evidence"
+              placeholder="Rent comparable links and observation dates"
+              maxlength="3000"
+          /></label>
+        </div>
+        <h2>Purchase & exit</h2>
+        <div class="fields" id="purchaseFields"></div>
+        <h2>Repairs & carrying costs</h2>
+        <div class="fields" id="repairFields"></div>
+        <h2>Flip financing & downside assumptions</h2>
+        <div class="fields" id="financeFields"></div>
+        <h2>Rental income & financing</h2>
+        <div class="fields" id="rentalFields"></div>
+        <p class="notes">
+          Use one currency throughout. Enter your local closing costs, taxes,
+          insurance, utilities, and sale fees explicitly. Interest is calculated
+          separately on a constant loan balance; repairs are funded in cash.
+        </p>
+        <button type="submit">Compare scenarios</button
+        ><button class="secondary" id="sample" type="button">
+          Load example
+        </button>
+        <p id="error" class="error" role="alert"></p>
+      </form>
+      <section class="results" id="results" hidden aria-live="polite">
+        <h2 id="resultTitle">Strategy comparison</h2>
+        <div class="fields" id="summaryCards"></div>
+        <h2>Flip scenarios</h2>
+        <p id="exampleNote" class="notes"></p>
+        <div class="scroll">
+          <table>
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <h2>Rental hold · one stabilized year</h2>
+        <p class="notes">
+          Flip profit is a one-time outcome; rental cash flow is annual. Neither
+          includes income taxes or appreciation.
+        </p>
+        <div class="scroll">
+          <table>
+            <thead id="rentalHead"></thead>
+            <tbody id="rentalBody"></tbody>
+          </table>
+        </div>
+        <h2>Assumptions & limits</h2>
+        <ul id="notes" class="notes"></ul>
+        <button class="secondary" id="export" type="button">
+          Download deal JSON
+        </button>
+      </section>
+    </main>
+    <script src="/static/investor.js" defer></script>
+  </body>
+</html>
