@@ -1,0 +1,153 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #19312b;
+  background: #f3f5f1;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+main {
+  max-width: 1180px;
+  margin: auto;
+  padding: 38px 24px;
+}
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+h1 {
+  font-size: clamp(28px, 5vw, 44px);
+  letter-spacing: -1.5px;
+  margin: 8px 0;
+}
+h2 {
+  font-size: 20px;
+}
+p {
+  line-height: 1.6;
+}
+a {
+  color: #22684f;
+}
+.eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+.intro {
+  max-width: 720px;
+  color: #56665e;
+}
+form,
+.results {
+  background: white;
+  border: 1px solid #dce3db;
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 24px;
+}
+.fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #b9c9bd;
+  border-radius: 7px;
+  font: inherit;
+  margin-top: 7px;
+}
+small {
+  display: block;
+  color: #5e6f63;
+  margin-top: 5px;
+  line-height: 1.4;
+}
+button {
+  background: #225b46;
+  color: white;
+  border: 0;
+  border-radius: 8px;
+  padding: 13px 20px;
+  font: inherit;
+  cursor: pointer;
+  margin-top: 18px;
+}
+.secondary {
+  background: #edf3ed;
+  color: #225b46;
+  margin-left: 8px;
+}
+.error {
+  color: #ae2727;
+}
+.scroll {
+  overflow: auto;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 740px;
+}
+th,
+td {
+  text-align: right;
+  padding: 14px 10px;
+  border-bottom: 1px solid #e1e7df;
+  font-size: 14px;
+}
+th:first-child,
+td:first-child {
+  text-align: left;
+}
+th {
+  color: #5c6c62;
+  font-size: 12px;
+}
+td.bad {
+  color: #b22e30;
+  font-weight: 700;
+}
+td.good {
+  color: #22684f;
+  font-weight: 700;
+}
+.notes {
+  font-size: 13px;
+  color: #5e6f63;
+}
+.results[hidden] {
+  display: none;
+}
+@media (max-width: 720px) {
+  .fields {
+    grid-template-columns: 1fr 1fr;
+  }
+  header {
+    display: block;
+  }
+  main {
+    padding: 24px 16px;
+  }
+  form,
+  .results {
+    padding: 18px;
+  }
+}
+@media (max-width: 430px) {
+  .fields {
+    grid-template-columns: 1fr;
+  }
+}

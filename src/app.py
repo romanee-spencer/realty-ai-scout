@@ -22,24 +22,30 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY', 'dev-key-change-in-production')
 
 def try_scrape(address):
     """Attempt to scrape property data. Returns scraped data or empty structure."""
+    scraper = None
     try:
         from selenium_scraper import PropertyScraper
         scraper = PropertyScraper(headless=True)
         if scraper.start_driver():
             print(f"Scraping data for: {address}")
             scraped_data = scraper.scrape_property_and_comps(address)
-            scraper.close_driver()
             print(f"Scraping done. Property: {bool(scraped_data.get('property'))}, "
                   f"Comps: {len(scraped_data.get('comparables', []))}")
             return scraped_data
     except Exception as e:
         print(f"Scraping failed: {e}")
+    finally:
+        if scraper is not None:
+            try:
+                scraper.close_driver()
+            except Exception as e:
+                app.logger.warning("Could not close scraping browser: %s", e)
     return {'property': {'address': address}, 'comparables': []}
 
 
 def build_property_data(req_json, scraped_property=None):
     """Merge manual input with scraped data. Manual input takes priority."""
-    base = scraped_property or {}
+    base = dict(scraped_property or {})
 
     # Manual fields override scraped data when provided
     manual_fields = {
@@ -55,9 +61,11 @@ def build_property_data(req_json, scraped_property=None):
         'condition': req_json.get('condition'),
     }
 
+    supplied_fields = []
     for key, val in manual_fields.items():
         if val is not None and val != '' and val != 'Unknown':
             base[key] = val
+            supplied_fields.append(key)
 
     # Calculate total living sqft if we have both
     if base.get('sqft') and base.get('sqft_finished_basement'):
@@ -70,8 +78,20 @@ def build_property_data(req_json, scraped_property=None):
             pass
 
     base['address'] = req_json.get('address', base.get('address', 'Unknown'))
-    base['data_source'] = 'manual' if any(v for v in manual_fields.values()) else 'scraped'
+    base['data_source'] = 'manual' if supplied_fields else 'scraped'
     return base
+
+
+def read_analysis_request():
+    """Reject invalid input before starting browser or paid API work."""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return None, (jsonify({'error': 'A valid JSON object is required'}), 400)
+    address = data.get('address')
+    if not isinstance(address, str) or not address.strip():
+        return None, (jsonify({'error': 'Address is required'}), 400)
+    data['address'] = address.strip()
+    return data, None
 
 
 def parse_claude_json(content):
@@ -86,20 +106,44 @@ def parse_claude_json(content):
     return {"raw_analysis": content}
 
 
-@app.route('/')
+@app.route('/research')
 def index():
     """Main page with property analysis form"""
     return render_template('index.html')
 
 
+@app.route('/')
+@app.route('/investor')
+def investor():
+    return render_template('investor.html')
+
+
+@app.route('/deal-analysis', methods=['POST'])
+def deal_analysis():
+    from deal_calculator import calculate_flip
+    try:
+        return jsonify(calculate_flip(request.get_json(silent=True)))
+    except ValueError as error:
+        return jsonify({'error': str(error)}), 400
+
+
+@app.route('/strategy-comparison', methods=['POST'])
+def strategy_comparison():
+    from deal_calculator import compare_strategies
+    try:
+        return jsonify(compare_strategies(request.get_json(silent=True)))
+    except ValueError as error:
+        return jsonify({'error': str(error)}), 400
+
+
 @app.route('/analyze', methods=['POST'])
 def analyze_property():
     """Analyze property and return insights"""
+    data, error = read_analysis_request()
+    if error is not None:
+        return error
     try:
-        data = request.json
-        address = data.get('address')
-        if not address:
-            return jsonify({'error': 'Address is required'}), 400
+        address = data['address']
 
         from claude_analyzer import ClaudeAnalyzer
         analyzer = ClaudeAnalyzer()
@@ -141,11 +185,11 @@ def analyze_property():
 @app.route('/flip-analysis', methods=['POST'])
 def flip_analysis():
     """Analyze property for flip/investment potential"""
+    data, error = read_analysis_request()
+    if error is not None:
+        return error
     try:
-        data = request.json
-        address = data.get('address')
-        if not address:
-            return jsonify({'error': 'Address is required'}), 400
+        address = data['address']
 
         from claude_analyzer import ClaudeAnalyzer
         analyzer = ClaudeAnalyzer()

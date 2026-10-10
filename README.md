@@ -1,222 +1,84 @@
-# 🏠 Realty AI Scout
+# Realty AI Scout
 
-AI-powered real estate analysis tool for property valuation, comparable analysis, and market insights using multi-source data aggregation and Claude AI.
+A Flask prototype for property analysis and flip research. It combines manually
+entered property facts with optional Selenium scraping, then requests a structured
+analysis from Anthropic. This repository is the web interface candidate for the
+investor product; the older ARV calculator and investmentpropertyanalysis projects
+contain related experiments.
 
-## 🚀 Features
+## Run locally
 
-- **Multi-Source Data Collection**: Scrapes property data from Zillow, Realtor.com, and other sources using Selenium
-- **AI-Powered Market Research**: Uses Perplexity API for comprehensive market intelligence
-- **Smart Comparable Analysis**: Finds and analyzes comparable properties with advanced scoring algorithms
-- **Claude AI Analysis**: Generates property valuations, listing descriptions, and investment insights
-- **Data Consolidation**: Merges and validates data from multiple sources with conflict resolution
-- **Professional Reports**: Creates comprehensive market reports and analysis
-
-## 🛠️ Tech Stack
-
-- **Backend**: Python Flask
-- **Web Scraping**: Selenium WebDriver
-- **AI APIs**: Claude (Anthropic), Perplexity
-- **Database**: SQLite (development), PostgreSQL (production ready)
-- **Frontend**: HTML/CSS/JavaScript (simple UI)
-
-## 📦 Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/PowerfulRI/realty-ai-scout.git
-   cd realty-ai-scout
-   ```
-
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Install Chrome WebDriver**
-   ```bash
-   # macOS
-   brew install chromedriver
-   
-   # Or download from https://chromedriver.chromium.org/
-   ```
-
-4. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your API keys
-   ```
-
-## 🔧 Configuration
-
-Create a `.env` file with your API keys:
-
-```env
-# AI API Keys
-ANTHROPIC_API_KEY=your_claude_api_key_here
-PERPLEXITY_API_KEY=your_perplexity_api_key_here
-
-# Flask Configuration
-FLASK_SECRET_KEY=your_secret_key_here
-FLASK_ENV=development
-
-# Database (optional)
-DATABASE_URL=sqlite:///realty_scout.db
+```sh
+git clone https://github.com/romanee-spencer/realty-ai-scout.git
+cd realty-ai-scout
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+cp .env.example .env
+# Set ANTHROPIC_API_KEY in .env
+python src/app.py
 ```
 
-## 🚀 Quick Start
+Open http://localhost:8000 for the investor workspace. It works without API keys.
+The legacy AI research form is at http://localhost:8000/research. Chrome/Chromium is needed for scraping; the scraper
+attempts to obtain a driver automatically. If scraping fails, manual property
+facts are still passed to the analysis. Missing API credentials prevent AI
+analysis. Requests can take time while the browser and provider run.
 
-1. **Start the application**
-   ```bash
-   python src/app.py
-   ```
+## Current behavior
 
-2. **Open your browser**
-   ```
-   http://localhost:5000
-   ```
+- `/` and `/investor` serve the flip-versus-rental workspace.
+- `POST /strategy-comparison` calculates four flip scenarios and two rental scenarios.
+- `POST /deal-analysis` calculates flip scenarios alone.
+- `/research` serves the legacy AI property form.
+- `POST /analyze` returns property facts, scraped comparables, and AI analysis.
+- `POST /flip-analysis` returns flip research and preliminary metrics.
+- Both analysis endpoints accept a JSON object with a nonempty `address` string.
+- Optional manual fields: `price`, `beds`, `baths`, `sqft`, `year_built`,
+  `lot_size`, `basement`, `sqft_finished_basement`, `property_type`, `condition`.
+- Manual facts override scraped values without mutating the original scrape.
+- Browser cleanup runs even when scraping fails.
 
-3. **Enter a property address**
-   - The tool will scrape data from multiple sources
-   - Generate AI-powered analysis and insights
-   - Provide comparable properties and market trends
+There is no Perplexity client, database, saved-deal workflow, or authentication in
+the current implementation. AI responses are not verified property data. The old
+flip formula that inferred resale value from purchase price has been removed.
+The investor workspace requires user-supplied resale value, rent, repairs, costs,
+and separate financing for each strategy. It does not automatically verify
+Connecticut comparable sales, rents, municipal taxes, or closing charges.
 
-## 📊 How It Works
+Flip results model a constant-balance interest-only purchase loan. Rental results
+model a fixed-rate amortizing purchase loan and one stabilized year. Renovation
+costs are paid in cash. Neither model includes income taxes or appreciation.
+The UI lists these assumptions and exports inputs and results as JSON.
 
-### Data Collection Pipeline
-1. **Address Input** → Standardized address format
-2. **Selenium Scraping** → Extract property data from multiple real estate sites
-3. **Perplexity Research** → AI-powered market research and verification
-4. **Data Consolidation** → Merge and validate data with conflict resolution
-5. **Claude Analysis** → Generate insights, valuations, and recommendations
+The Load example button uses illustrative assumptions only. No market defaults
+are prefilled on initial load.
 
-### Comparable Analysis
-- Finds properties within 1-mile radius
-- Filters by similar size, bedrooms, bathrooms
-- Recent sales within 3-6 months
-- Scores comparables using weighted algorithm:
-  - Proximity: 40%
-  - Recency: 25% 
-  - Size similarity: 15%
-  - Condition similarity: 10%
-  - Features similarity: 10%
+## Tests
 
-## 🏗️ Project Structure
-
-```
-realty-ai-scout/
-├── src/
-│   ├── app.py                 # Flask web application
-│   ├── selenium_scraper.py    # Multi-source data scraping
-│   ├── perplexity_client.py   # Market research API client
-│   ├── claude_analyzer.py     # AI analysis and insights
-│   ├── data_consolidator.py   # Data merging and validation
-│   └── __init__.py
-├── templates/
-│   └── index.html            # Web interface
-├── static/
-│   └── style.css            # Styling
-├── tests/
-│   └── test_*.py            # Unit tests
-├── requirements.txt         # Python dependencies
-├── .env.example            # Environment variables template
-├── .gitignore              # Git ignore file
-└── README.md               # This file
+```sh
+python -m pytest -q
 ```
 
-## 🔍 API Usage
+Request tests replace browser and AI services with controlled doubles. They cover
+both endpoints, invalid bodies and addresses, provider failures, manual overrides,
+and browser cleanup. They do not require API keys, Chrome, or paid API calls.
+Live scraping and provider integration require separate verification.
 
-### Property Analysis
-```python
-from src.selenium_scraper import PropertyScraper
-from src.perplexity_client import PerplexityClient
-from src.claude_analyzer import ClaudeAnalyzer
+## Files
 
-# Initialize components
-scraper = PropertyScraper()
-perplexity = PerplexityClient()
-analyzer = ClaudeAnalyzer()
+- `src/deal_calculator.py`: deterministic underwriting and scenario calculations
+- `templates/investor.html`: investor comparison interface
+- `src/app.py`: Flask routes and manual data merge
+- `src/selenium_scraper.py`: property and comparable scraping
+- `src/claude_analyzer.py`: prompts, provider calls, evidence-based flip research
+- `templates/index.html`: existing analysis interface
+- `static/style.css`: styles
+- `tests/test_app.py`: offline regressions
 
-# Analyze property
-address = "123 Main St, Anytown, CA"
-property_data = scraper.scrape_zillow(address)
-market_data = perplexity.research_property(address)
-analysis = analyzer.analyze_property_value(property_data, [], market_data)
-```
+## Investor product direction
 
-## 🧪 Testing
-
-Run the test suite:
-```bash
-python -m pytest tests/
-```
-
-## 📈 Weekend Development Timeline
-
-### Saturday (8-10 hours)
-- ✅ Project setup and Flask app
-- ✅ Selenium scraping implementation
-- ✅ Property data extraction
-- ✅ Basic comparable search
-- ✅ Claude API integration
-
-### Sunday (8-10 hours)
-- 🔄 Web interface development
-- 🔄 Property analysis pipeline
-- 🔄 AI-generated insights
-- 🔄 Styling and error handling
-- 🔄 Testing and debugging
-
-## 🚧 Development Status
-
-- [x] Project structure and setup
-- [x] Core modules created
-- [x] Multi-source scraping framework
-- [x] AI integration architecture
-- [ ] Selenium scraping implementation
-- [ ] Perplexity API integration
-- [ ] Claude analysis pipeline
-- [ ] Web interface
-- [ ] Data validation and testing
-
-## 🔮 Future Enhancements
-
-- **Image Analysis**: Property condition assessment from photos
-- **Advanced UI**: React frontend with interactive charts
-- **Database**: PostgreSQL for data persistence
-- **Caching**: Redis for performance optimization
-- **Authentication**: User accounts and saved searches
-- **Mobile App**: React Native mobile application
-- **API**: RESTful API for third-party integrations
-
-## 🛡️ Legal & Compliance
-
-- Respects robots.txt and rate limiting
-- Focuses on publicly available data
-- Implements proper error handling and fallbacks
-- No unauthorized access to protected content
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📞 Support
-
-- Create an [Issue](https://github.com/PowerfulRI/realty-ai-scout/issues) for bug reports
-- Start a [Discussion](https://github.com/PowerfulRI/realty-ai-scout/discussions) for questions
-- Check the [Wiki](https://github.com/PowerfulRI/realty-ai-scout/wiki) for documentation
-
-## ⚠️ Disclaimer
-
-This tool is for informational purposes only. Property valuations and market analysis should not be considered as professional appraisals or investment advice. Always consult with qualified real estate professionals for important decisions.
-
----
-
-**Built with ❤️ using Claude Code and AI-powered development**
+Start with explicit purchase, renovation, financing, carrying, and exit
+assumptions. Calculate results deterministically, show missing information, and
+compare downside scenarios. Keep source dates and links with property facts and
+comparables. AI commentary should explain the supplied evidence and assumptions.

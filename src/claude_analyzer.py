@@ -342,37 +342,10 @@ class ClaudeAnalyzer:
         if not self.client:
             return {"error": "Claude API key not configured"}
 
-        # Calculate basic financial metrics locally
-        price = property_data.get('price')
-        sqft = property_data.get('sqft')
-
+        # No resale estimate or profit is inferred from the asking price.
+        # Deterministic deal metrics live in deal_calculator.py and require
+        # explicit exit, repair, carrying and financing assumptions.
         flip_metrics = {}
-        if price:
-            try:
-                purchase_price = float(str(price).replace(',', ''))
-                renovation_cost = purchase_price * 0.15
-                holding_costs = purchase_price * 0.02
-                selling_costs = purchase_price * 0.06
-                arv_70_rule = purchase_price / 0.7
-                arv_market = purchase_price * 1.3
-                arv = max(arv_70_rule, arv_market)
-                total_investment = purchase_price + renovation_cost + holding_costs + selling_costs
-                potential_profit = arv - total_investment
-                roi = (potential_profit / total_investment) * 100 if total_investment > 0 else 0
-
-                flip_metrics = {
-                    "purchase_price": round(purchase_price),
-                    "estimated_renovation": round(renovation_cost),
-                    "holding_costs": round(holding_costs),
-                    "selling_costs": round(selling_costs),
-                    "total_investment": round(total_investment),
-                    "estimated_arv": round(arv),
-                    "potential_profit": round(potential_profit),
-                    "roi_percentage": round(roi, 1),
-                    "price_per_sqft": round(purchase_price / float(sqft)) if sqft else None,
-                }
-            except (ValueError, TypeError):
-                pass
 
         prompt = f"""
         You are an experienced real estate investor analyzing a potential flip deal.
@@ -396,9 +369,8 @@ class ClaudeAnalyzer:
         Year Built: {property_data.get('year_built', 'Unknown')}
         Description: {(property_data.get('description') or 'No description')[:300]}
 
-        IMPORTANT: If the property has a finished basement, the ARV should reflect the TOTAL
-        living space, not just above-grade sqft. Finished basements in CT typically add $30-60/sqft
-        in value (less than above-grade but significant). Factor this into ARV calculation.
+        Keep above-grade and basement space distinct. Any value adjustment must be
+        supported by supplied comparable evidence; do not invent a local adjustment rate.
 
         COMPARABLE SALES (pre-filtered, distressed sales removed):
         {self._format_comparables_for_analysis(comparables)}
@@ -406,8 +378,11 @@ class ClaudeAnalyzer:
         PRELIMINARY CALCULATED METRICS (verify and adjust these):
         {json.dumps(flip_metrics, indent=2)}
 
-        The preliminary metrics use generic formulas (15% renovation, 70% rule).
-        Override these with your actual market knowledge for this specific area and property.
+        The metrics are intentionally empty when underwriting assumptions are absent.
+        Do not derive ARV from purchase price or fabricate sold comparables, rents, or costs.
+        Use null for unsupported dollar amounts, financial outputs, and scores.
+        If adequate comparable evidence is absent, return recommendation="insufficient_data"
+        and list the missing evidence. Do not issue a buy recommendation without evidence.
 
         Provide flip analysis in JSON format:
         {{
@@ -446,8 +421,8 @@ class ClaudeAnalyzer:
             "exit_strategies": ["Ranked exit options if flip doesn't work"]
         }}
 
-        Be specific with dollar amounts. Use your knowledge of {property_data.get('address', 'this area')}'s
-        actual market conditions, not generic assumptions.
+        Use dollar amounts only when supported by the supplied evidence and explicit
+        assumptions. Identify source gaps and unverified facts in risks.
         """
 
         result = self._make_request(prompt)
